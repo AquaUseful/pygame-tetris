@@ -14,14 +14,14 @@ class ColorMap(object):
     CYAN = pygame.Color("cyan")
     ORANGE = pygame.Color("orange")
 
-    CLEAR = "clear"
-    RED = "red"
-    BLUE = "blue"
-    GREEN = "green"
-    YELLOW = "yellow"
-    MAGENTA = "magenta"
-    CYAN = "cyan"
-    ORANGE = "orange"
+    #CLEAR = "clear"
+    #RED = "red"
+    #BLUE = "blue"
+    #GREEN = "green"
+    #YELLOW = "yellow"
+    #MAGENTA = "magenta"
+    #CYAN = "cyan"
+    #ORANGE = "orange"
 
 
 class Shape(object):
@@ -79,7 +79,7 @@ class TetrisPiece(object):
     def get_color(self) -> pygame.Color:
         return self.color
 
-    def __copy__(self) -> TetrisPiece:
+    def __copy__(self):
         return TetrisPiece(self.coords, self.shape, self.color)
 
     def ghostify(self, alpha: int) -> None:
@@ -118,6 +118,9 @@ class BaseTileField(object):
     def get_tile(self, coords) -> pygame.Color:
         return self.tiles[coords[0]][coords[1]]
 
+    def get_tiles(self) -> list:
+        return self.tiles
+
 
 class TetrisBoard(BaseTileField):
     def __init__(self, clear_val=ColorMap.CLEAR):
@@ -145,9 +148,9 @@ class TetrisBoard(BaseTileField):
     def move_curr_piece(self, coords_delta: tuple) -> None:
         self.curr_piece.move(coords_delta)
 
-    def new_piece(self, shape_class) -> None:
-        shape = choice(shape_class.SHAPES)
-        self.curr_piece = TetrisPiece((4, 20), shape)
+    def new_piece(self, piece_class) -> None:
+        shape = choice(piece_class.SHAPES)
+        self.curr_piece = piece_class((4, 20), shape)
 
     def put_curr_piece(self) -> None:
         for x, y in self.curr_piece.get_tiles():
@@ -163,20 +166,34 @@ class TetrisBoard(BaseTileField):
 
     def curr_piece_can_drop(self) -> None:
         temp_piece = copy(self.curr_piece)
-        
+        temp_piece.move(1, 0)
+        return not (self.piece_collides_borders(temp_piece) or
+                    self.piece_collides_tiles(temp_piece))
 
     def is_tile_empty(self, coords: tuple) -> bool:
         return self.tiles[coords[0]][coords[1]] == self.clear_val
 
-    def piece_collides(self, piece: TetrisPiece) -> bool:
+    def is_tile_on_board(self, coords: tuple) -> bool:
+        return 0 <= coords[0] < self.width and 0 <= coords[1] < self.width
+
+    def piece_collides_tiles(self, piece: TetrisPiece) -> bool:
         return not all(map(lambda coords: self.is_tile_empty(coords),
                            piece.get_tiles_coords()))
 
+    def piece_collides_borders(self, piece: TetrisPiece) -> bool:
+        return not all(map(lambda coords: self.is_tile_on_board(coords),
+                           piece.get_tiles_coords()))
 
-b = TetrisBoard()
-b.set_tile((3, 3), ColorMap.BLUE)
-b.set_tile((3, 2), ColorMap.RED)
-print(*b.tiles, sep="\n")
-print()
-b.clear_row(3)
-print(*b.tiles, sep="\n")
+    def is_row_full(self, row: int) -> bool:
+        return not any(map(lambda col: self.is_tile_empty((row, col)),
+                           range(self.width)))
+
+    def clear_filled_rows(self, scorecounter: callable = None):
+        cleared_rows = 0
+        for row in range(self.height):
+            if self.is_row_full(row):
+                self.clear_row(row)
+                cleared_rows += 1
+        if scorecounter is not None:
+            scorecounter(cleared_rows)
+
