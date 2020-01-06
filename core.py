@@ -1,4 +1,7 @@
 import pygame
+from operator import add
+from random import choice
+from copy import copy
 
 
 class ColorMap(object):
@@ -10,6 +13,15 @@ class ColorMap(object):
     MAGENTA = pygame.Color("magenta")
     CYAN = pygame.Color("cyan")
     ORANGE = pygame.Color("orange")
+
+    CLEAR = "clear"
+    RED = "red"
+    BLUE = "blue"
+    GREEN = "green"
+    YELLOW = "yellow"
+    MAGENTA = "magenta"
+    CYAN = "cyan"
+    ORANGE = "orange"
 
 
 class Shape(object):
@@ -23,15 +35,18 @@ class Shape(object):
     def calculate_rotation(self, rotation) -> tuple:
         box = [[False] * self.bbox_size[0] for _ in range(self.bbox_size[1])]
         for tile in self.tiles:
-            box[tile[1]][tile[0]] = True
+            box[tile[0]][tile[1]] = True
         for _ in range(rotation):
             box = tuple(zip(*box[::-1]))
         tiles = []
         for x, line in enumerate(box):
             for y, el in enumerate(line):
                 if el:
-                    tiles.append((y, x))
+                    tiles.append((x, y))
         return tuple(tiles)
+
+    def get_bbox_size(self) -> int:
+        return self.bbox_size
 
 
 class TetrisPiece(object):
@@ -51,6 +66,25 @@ class TetrisPiece(object):
         else:
             self.rotation = (self.rotation - 1) % 4
 
+    def move(self, coords_delta: tuple) -> None:
+        self.coords = tuple(map(add, self.coords, coords_delta))
+
+    def get_tiles_coords(self) -> tuple:
+        x, y = self.coords
+        return tuple(map(lambda tile: (x + tile[0], y + tile[1]), self.shape.get_tiles()))
+
+    def get_shape(self) -> Shape:
+        return self.shape
+
+    def get_color(self) -> pygame.Color:
+        return self.color
+
+    def __copy__(self) -> TetrisPiece:
+        return TetrisPiece(self.coords, self.shape, self.color)
+
+    def ghostify(self, alpha: int) -> None:
+        pass
+
 
 class Tetromino(TetrisPiece):
     L_SH = (Shape(((0, 1), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.ORANGE)
@@ -68,19 +102,81 @@ class Pentomino(TetrisPiece):
 
 
 class BaseTileField(object):
-    def __init__(self):
-        self.rows = []
-        self.width = 0
-        self.height = 0
-
-    def set_size(self, cols: int, rows: int) -> None:
+    def __init__(self, cols, rows):
         self.width = cols
         self.height = rows
         self.clear()
 
     def clear(self) -> None:
-        self.rows = [[ColorMap.CLEAR] * self.width for _ in range(self.height)]
+        self.tiles = [[ColorMap.CLEAR] *
+                      self.height for _ in range(self.width)]
 
     def set_tile(self, coords: tuple, color: pygame.Color) -> None:
         if 0 <= coords[0] < self.width and 0 <= coords[1] < self.height:
-            self.rows[coords[1]][coords[0]] = color
+            self.tiles[coords[0]][coords[1]] = color
+
+    def get_tile(self, coords) -> pygame.Color:
+        return self.tiles[coords[0]][coords[1]]
+
+
+class TetrisBoard(BaseTileField):
+    def __init__(self, clear_val=ColorMap.CLEAR):
+        super().__init__(10, 40)
+        self.clear_val = clear_val
+        self.reset()
+
+    def reset(self) -> None:
+        self.curr_piece = None
+        self.clear()
+
+    def clear_tile(self, coords: tuple) -> None:
+        self.tiles[coords[0]][coords[1]] = ColorMap.CLEAR
+        for y in range(coords[1], 0, -1):
+            self.tiles[coords[0]][y] = self.tiles[coords[0]][y - 1]
+        self.tiles[coords[0]][0] = ColorMap.CLEAR
+
+    def clear_row(self, row: int) -> None:
+        for x in range(self.width):
+            self.clear_tile((x, row))
+
+    def rotate_curr_piece(self, rotation) -> None:
+        self.curr_piece.rotate(rotation)
+
+    def move_curr_piece(self, coords_delta: tuple) -> None:
+        self.curr_piece.move(coords_delta)
+
+    def new_piece(self, shape_class) -> None:
+        shape = choice(shape_class.SHAPES)
+        self.curr_piece = TetrisPiece((4, 20), shape)
+
+    def put_curr_piece(self) -> None:
+        for x, y in self.curr_piece.get_tiles():
+            self.tiles[x][y] = self.curr_piece.get_color()
+        self.curr_piece = None
+
+    def drop_curr_piece(self) -> None:
+        self.curr_piece.move((0, 1))
+
+    def hard_drop_curr_piece(self) -> None:
+        while self.curr_piece_can_drop():
+            self.drop_curr_piece()
+
+    def curr_piece_can_drop(self) -> None:
+        temp_piece = copy(self.curr_piece)
+        
+
+    def is_tile_empty(self, coords: tuple) -> bool:
+        return self.tiles[coords[0]][coords[1]] == self.clear_val
+
+    def piece_collides(self, piece: TetrisPiece) -> bool:
+        return not all(map(lambda coords: self.is_tile_empty(coords),
+                           piece.get_tiles_coords()))
+
+
+b = TetrisBoard()
+b.set_tile((3, 3), ColorMap.BLUE)
+b.set_tile((3, 2), ColorMap.RED)
+print(*b.tiles, sep="\n")
+print()
+b.clear_row(3)
+print(*b.tiles, sep="\n")
