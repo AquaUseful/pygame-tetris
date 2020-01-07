@@ -21,9 +21,15 @@ class PygameTileField(object):
                                         self.tile_size[0], self.tile_size[1])
                 print(tile_color)
                 pygame.draw.rect(surface, tile_color, tile_rect)
+        if render_border:
+            field_size = self.field.get_size()
+            border = pygame.Rect(self.coords,
+                                 (field_size[0] * self.tile_size[0],
+                                  field_size[1] * self.tile_size[1]))
+            pygame.draw.rect(surface, ColorMap.WHITE, border, 1)
 
 
-class PygameTerisPiece(object):
+class PygameTetrisPiece(object):
     def __init__(self, coords: tuple, piece: TetrisPiece, tile_size: tuple):
         self.coords = coords
         self.piece = piece
@@ -33,6 +39,8 @@ class PygameTerisPiece(object):
         self.piece = piece
 
     def render(self, surface):
+        if self.piece is None:
+            return
         color = self.piece.get_color()
         for x, y in self.piece.get_tiles_coords():
             tile_rect = pygame.Rect(x * self.tile_size[0] + self.coords[0],
@@ -43,20 +51,3 @@ class PygameTerisPiece(object):
 
 class PygamePushButton(object):
     pass
-
-
-b = TetrisBoard()
-b.set_tile((3, 3), ColorMap.BLUE)
-b.set_tile((3, 2), ColorMap.RED)
-print(*b.tiles, sep="\n")
-print()
-b.clear_row(3)
-print(*b.tiles, sep="\n")
-pygame.init()
-screen = pygame.display.set_mode((500, 500))
-renderer = PygameTileField((10, 10), b, (10, 10), ColorMap.CLEAR)
-renderer.render(screen)
-pygame.display.flip()
-input()
-piece = Tetromino((0, 0), )
-pygame.exit()
