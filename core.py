@@ -14,21 +14,23 @@ class ColorMap(object):
     CYAN = pygame.Color("cyan")
     ORANGE = pygame.Color("orange")
     WHITE = pygame.Color("white")
+    GHOST = pygame.Color("darkgrey")
 
-    #CLEAR = "clear"
-    #RED = "red"
-    #BLUE = "blue"
-    #GREEN = "green"
-    #YELLOW = "yellow"
-    #MAGENTA = "magenta"
-    #CYAN = "cyan"
-    #ORANGE = "orange"
+    # CLEAR = "clear"
+    # RED = "red"
+    # BLUE = "blue"
+    # GREEN = "green"
+    # YELLOW = "yellow"
+    # MAGENTA = "magenta"
+    # CYAN = "cyan"
+    # ORANGE = "orange"
 
 
 class Shape(object):
-    def __init__(self, tiles: tuple, bbox_size: tuple):
+    def __init__(self, tiles: tuple, bbox_size: tuple, kick_data: dict):
         self.tiles = tiles
         self.bbox_size = bbox_size
+        self.kick_data = kick_data
 
     def get_tiles(self) -> tuple:
         return self.tiles
@@ -37,7 +39,7 @@ class Shape(object):
         box = [[False] * self.bbox_size[0] for _ in range(self.bbox_size[1])]
         for tile in self.tiles:
             box[tile[0]][tile[1]] = True
-        for _ in range(rotation):
+        for _ in range(4 - rotation):
             box = tuple(zip(*box[::-1]))
         tiles = []
         for x, line in enumerate(box):
@@ -49,9 +51,16 @@ class Shape(object):
     def get_bbox_size(self) -> int:
         return self.bbox_size
 
+    def get_kick_data(self, old_rot: int, new_rot: int) -> tuple:
+        return self.kick_data[(old_rot, new_rot)]
+
 
 class TetrisPiece(object):
-    def __init__(self, coords: tuple, shape, color: pygame.Color, rotation=0):
+    def __init__(self,
+                 coords: tuple,
+                 shape: Shape,
+                 color: pygame.Color,
+                 rotation=0):
         self.coords = coords
         self.shape = shape
         self.color = color
@@ -67,12 +76,16 @@ class TetrisPiece(object):
         else:
             self.rotation = (self.rotation - 1) % 4
 
+    def get_rotation(self) -> int:
+        return self.rotation
+
     def move(self, coords_delta: tuple) -> None:
         self.coords = tuple(map(add, self.coords, coords_delta))
 
     def get_tiles_coords(self) -> tuple:
         x, y = self.coords
-        return tuple(map(lambda tile: (x + tile[0], y + tile[1]), self.shape.calculate_rotation(self.rotation)))
+        return tuple(map(lambda tile: (x + tile[0], y + tile[1]),
+                         self.shape.calculate_rotation(self.rotation)))
 
     def get_shape(self) -> Shape:
         return self.shape
@@ -81,20 +94,53 @@ class TetrisPiece(object):
         return self.color
 
     def __copy__(self):
-        return TetrisPiece(self.coords, self.shape, self.color, self.rotation)
+        return TetrisPiece(self.coords,
+                           self.shape,
+                           self.color,
+                           self.rotation)
 
     def ghostify(self) -> None:
-        pass
+        self.color = ColorMap.GHOST
+
+    def get_kick_data(self, old_rot, new_rot):
+        return self.shape.get_kick_data(old_rot, new_rot)
 
 
 class Tetromino(TetrisPiece):
-    L_SH = (Shape(((0, 1), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.ORANGE)
-    J_SH = (Shape(((0, 0), (0, 1), (1, 1), (2, 1)), (3, 3)), ColorMap.BLUE)
-    O_SH = (Shape(((0, 0), (0, 1), (1, 0), (1, 1)), (2, 2)), ColorMap.YELLOW)
-    T_SH = (Shape(((0, 1), (1, 1), (2, 1), (1, 0)), (3, 3)), ColorMap.MAGENTA)
-    S_SH = (Shape(((1, 0), (0, 1), (1, 1), (2, 0)), (3, 3)), ColorMap.GREEN)
-    Z_SH = (Shape(((0, 0), (1, 0), (1, 1), (2, 1)), (3, 3)), ColorMap.RED)
-    I_SH = (Shape(((0, 1), (1, 1), (2, 1), (3, 1)), (4, 4)), ColorMap.CYAN)
+    wall_kicks = {
+        (0, 1): ((0, 0), (-1, 0), (-1, 1), (0, -2), (-1, 2)),
+        (1, 0): ((0, 0), (1, 0), (1, -1), (0, 2), (1, 2)),
+        (1, 2): ((0, 0), (1, 0), (1, -1), (0, 2), (1, 2)),
+        (2, 1): ((0, 0), (-1, 0), (-1, 1), (0, -2), (-1, -2)),
+        (2, 3): ((0, 0), (1, 0), (1, 1), (0, -2), (1, -2)),
+        (3, 2): ((0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)),
+        (3, 0): ((0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)),
+        (0, 3): ((0, 0), (1, 0), (1, 1), (0, -2), (1, -2))
+    }
+    L_SH = (Shape(((0, 1), (1, 1), (2, 1), (2, 0)), (3, 3), wall_kicks),
+            ColorMap.ORANGE)
+    J_SH = (Shape(((0, 0), (0, 1), (1, 1), (2, 1)), (3, 3), wall_kicks),
+            ColorMap.BLUE)
+    O_SH = (Shape(((0, 0), (0, 1), (1, 0), (1, 1)), (2, 2), wall_kicks),
+            ColorMap.YELLOW)
+    T_SH = (Shape(((0, 1), (1, 1), (2, 1), (1, 0)), (3, 3), wall_kicks),
+            ColorMap.MAGENTA)
+    S_SH = (Shape(((1, 0), (0, 1), (1, 1), (2, 0)), (3, 3), wall_kicks),
+            ColorMap.GREEN)
+    Z_SH = (Shape(((0, 0), (1, 0), (1, 1), (2, 1)), (3, 3), wall_kicks),
+            ColorMap.RED)
+    wall_kicks = {
+        (0, 1): ((0, 0), (-2, 0), (1, 0), (-2, -1), (1, 2)),
+        (1, 0): ((0, 0), (2, 0), (-1, 0), (2, 1), (-1, -2)),
+        (1, 2): ((0, 0), (-1, 0), (2, 0), (-1, 2), (2, -1)),
+        (2, 1): ((0, 0), (1, 0), (-2, 0), (1, -2), (-2, 1)),
+        (2, 3): ((0, 0), (2, 0), (-1, 0), (2, 1), (-1, -2)),
+        (3, 2): ((0, 0), (-2, 0), (1, 0), (-2, -1), (1, 2)),
+        (3, 0): ((0, 0), (1, 0), (-2, 0), (1, -2), (-2, 1)),
+        (0, 3): ((0, 0), (-1, 0), (2, 0), (-1, 2), (2, -1))
+    }
+    I_SH = (Shape(((0, 1), (1, 1), (2, 1), (3, 1)), (4, 4), wall_kicks),
+            ColorMap.CYAN)
     SHAPES = (L_SH, J_SH, O_SH, T_SH, S_SH, Z_SH, I_SH)
 
 
@@ -147,12 +193,17 @@ class TetrisBoard(BaseTileField):
             self.clear_tile((x, row))
 
     def rotate_curr_piece(self, rotation) -> None:
-        for _ in range(4):
-            self.curr_piece.rotate(rotation)
-            if self.piece_collides_tiles(self.curr_piece) or \
-                    self.piece_collides_borders(self.curr_piece):
-                continue
-            break
+        temp_piece = copy(self.curr_piece)
+        curr_rot = temp_piece.get_rotation()
+        temp_piece.rotate(rotation)
+        new_rot = temp_piece.get_rotation()
+        print(curr_rot, new_rot)
+        for kick in temp_piece.get_kick_data(curr_rot, new_rot):
+            print(kick)
+            if self.piece_can_move(temp_piece, kick):
+                self.curr_piece.rotate(rotation)
+                self.move_curr_piece(kick)
+                break
 
     def move_curr_piece(self, coords_delta: tuple) -> None:
         self.curr_piece.move(coords_delta)
@@ -191,7 +242,6 @@ class TetrisBoard(BaseTileField):
                     self.piece_collides_tiles(temp_piece))
 
     def is_tile_empty(self, coords: tuple) -> bool:
-        print(coords)
         return self.tiles[coords[0]][coords[1]] == self.clear_val
 
     def is_tile_on_board(self, coords: tuple) -> bool:
@@ -210,7 +260,6 @@ class TetrisBoard(BaseTileField):
 
     def clear_filled_rows(self, scorecounter: callable = None):
         cleared_rows = 0
-        print(self.height)
         for row in range(self.height):
             if self.is_row_full(row):
                 self.clear_row(row)
@@ -223,6 +272,7 @@ class TetrisBoard(BaseTileField):
 
     def get_ghost_piece(self):
         ghost = copy(self.curr_piece)
+        ghost.ghostify()
         while self.piece_can_move(ghost, (0, 1)):
             ghost.move((0, 1))
         return ghost
