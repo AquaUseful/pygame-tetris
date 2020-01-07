@@ -1,6 +1,6 @@
 import pygame
 from operator import add
-from random import choice
+from random import shuffle
 from copy import copy
 
 
@@ -216,11 +216,8 @@ class TetrisBoard(BaseTileField):
             if self.piece_can_move(self.curr_piece, (-1, 0)):
                 self.move_curr_piece((-1, 0))
 
-    def new_piece(self, piece_class):
-        self.lock_delay = False
-        shape = choice(piece_class.SHAPES)
-        self.curr_piece = piece_class((4, 20), shape[0], shape[1])
-        return self.curr_piece
+    def new_piece(self, piece):
+        self.curr_piece = piece
 
     def put_curr_piece(self) -> None:
         for x, y in self.curr_piece.get_tiles_coords():
@@ -279,3 +276,23 @@ class TetrisBoard(BaseTileField):
 
     def check_lock_delay(self):
         return not self.piece_can_move(self.curr_piece, (0, 1))
+
+class RandomBag(object):
+    def __init__(self, variants):
+        self.variants = variants
+        self.shuffle()
+
+    def shuffle(self):
+        self.seq = list(self.variants)
+        shuffle(self.seq)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if not self.seq:
+            self.shuffle()
+        return self.seq.pop()
+
+    def get_sequence(self):
+        return self.seq
