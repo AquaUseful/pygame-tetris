@@ -13,6 +13,7 @@ class ColorMap(object):
     MAGENTA = pygame.Color("magenta")
     CYAN = pygame.Color("cyan")
     ORANGE = pygame.Color("orange")
+    WHITE = pygame.Color("white")
 
     #CLEAR = "clear"
     #RED = "red"
@@ -50,7 +51,7 @@ class Shape(object):
 
 
 class TetrisPiece(object):
-    def __init__(self, coords: tuple, shape, color: pygame.Color):
+    def __init__(self, coords: tuple, shape, color: pygame.Color, rotation=0):
         self.coords = coords
         self.shape = shape
         self.color = color
@@ -71,7 +72,7 @@ class TetrisPiece(object):
 
     def get_tiles_coords(self) -> tuple:
         x, y = self.coords
-        return tuple(map(lambda tile: (x + tile[0], y + tile[1]), self.shape.get_tiles()))
+        return tuple(map(lambda tile: (x + tile[0], y + tile[1]), self.shape.calculate_rotation(self.rotation)))
 
     def get_shape(self) -> Shape:
         return self.shape
@@ -80,19 +81,19 @@ class TetrisPiece(object):
         return self.color
 
     def __copy__(self):
-        return TetrisPiece(self.coords, self.shape, self.color)
+        return TetrisPiece(self.coords, self.shape, self.color, self.rotation)
 
-    def ghostify(self, alpha: int) -> None:
+    def ghostify(self) -> None:
         pass
 
 
 class Tetromino(TetrisPiece):
     L_SH = (Shape(((0, 1), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.ORANGE)
-    J_SH = (Shape(((0, 0), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.BLUE)
+    J_SH = (Shape(((0, 0), (0, 1), (1, 1), (2, 1)), (3, 3)), ColorMap.BLUE)
     O_SH = (Shape(((0, 0), (0, 1), (1, 0), (1, 1)), (2, 2)), ColorMap.YELLOW)
     T_SH = (Shape(((0, 1), (1, 1), (2, 1), (1, 0)), (3, 3)), ColorMap.MAGENTA)
-    S_SH = (Shape(((0, 0), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.GREEN)
-    Z_SH = (Shape(((0, 0), (1, 1), (2, 1), (2, 0)), (3, 3)), ColorMap.RED)
+    S_SH = (Shape(((1, 0), (0, 1), (1, 1), (2, 0)), (3, 3)), ColorMap.GREEN)
+    Z_SH = (Shape(((0, 0), (1, 0), (1, 1), (2, 1)), (3, 3)), ColorMap.RED)
     I_SH = (Shape(((0, 1), (1, 1), (2, 1), (3, 1)), (4, 4)), ColorMap.CYAN)
     SHAPES = (L_SH, J_SH, O_SH, T_SH, S_SH, Z_SH, I_SH)
 
@@ -121,6 +122,9 @@ class BaseTileField(object):
     def get_tiles(self) -> list:
         return self.tiles
 
+    def get_size(self):
+        return (self.width, self.height)
+
 
 class TetrisBoard(BaseTileField):
     def __init__(self, clear_val=ColorMap.CLEAR):
@@ -143,38 +147,55 @@ class TetrisBoard(BaseTileField):
             self.clear_tile((x, row))
 
     def rotate_curr_piece(self, rotation) -> None:
-        self.curr_piece.rotate(rotation)
+        for _ in range(4):
+            self.curr_piece.rotate(rotation)
+            if self.piece_collides_tiles(self.curr_piece) or \
+                    self.piece_collides_borders(self.curr_piece):
+                continue
+            break
 
     def move_curr_piece(self, coords_delta: tuple) -> None:
         self.curr_piece.move(coords_delta)
 
-    def new_piece(self, piece_class) -> None:
+    def horiz_move_curr_piece(self, right: bool) -> None:
+        if right:
+            if self.piece_can_move(self.curr_piece, (1, 0)):
+                self.move_curr_piece((1, 0))
+        else:
+            if self.piece_can_move(self.curr_piece, (-1, 0)):
+                self.move_curr_piece((-1, 0))
+
+    def new_piece(self, piece_class):
+        self.lock_delay = False
         shape = choice(piece_class.SHAPES)
-        self.curr_piece = piece_class((4, 20), shape)
+        self.curr_piece = piece_class((4, 20), shape[0], shape[1])
+        return self.curr_piece
 
     def put_curr_piece(self) -> None:
-        for x, y in self.curr_piece.get_tiles():
+        for x, y in self.curr_piece.get_tiles_coords():
             self.tiles[x][y] = self.curr_piece.get_color()
         self.curr_piece = None
 
     def drop_curr_piece(self) -> None:
-        self.curr_piece.move((0, 1))
+        if self.piece_can_move(self.curr_piece, (0, 1)):
+            self.move_curr_piece((0, 1))
 
     def hard_drop_curr_piece(self) -> None:
-        while self.curr_piece_can_drop():
-            self.drop_curr_piece()
+        while self.piece_can_move(self.curr_piece, (0, 1)):
+            self.curr_piece.move((0, 1))
 
-    def curr_piece_can_drop(self) -> None:
-        temp_piece = copy(self.curr_piece)
-        temp_piece.move(1, 0)
+    def piece_can_move(self, piece, coords_delta: tuple):
+        temp_piece = copy(piece)
+        temp_piece.move(coords_delta)
         return not (self.piece_collides_borders(temp_piece) or
                     self.piece_collides_tiles(temp_piece))
 
     def is_tile_empty(self, coords: tuple) -> bool:
+        print(coords)
         return self.tiles[coords[0]][coords[1]] == self.clear_val
 
     def is_tile_on_board(self, coords: tuple) -> bool:
-        return 0 <= coords[0] < self.width and 0 <= coords[1] < self.width
+        return 0 <= coords[0] < self.width and 0 <= coords[1] < self.height
 
     def piece_collides_tiles(self, piece: TetrisPiece) -> bool:
         return not all(map(lambda coords: self.is_tile_empty(coords),
@@ -185,11 +206,11 @@ class TetrisBoard(BaseTileField):
                            piece.get_tiles_coords()))
 
     def is_row_full(self, row: int) -> bool:
-        return not any(map(lambda col: self.is_tile_empty((row, col)),
-                           range(self.width)))
+        return not any(map(lambda x: self.is_tile_empty((x, row)), range(self.width)))
 
     def clear_filled_rows(self, scorecounter: callable = None):
         cleared_rows = 0
+        print(self.height)
         for row in range(self.height):
             if self.is_row_full(row):
                 self.clear_row(row)
@@ -197,3 +218,14 @@ class TetrisBoard(BaseTileField):
         if scorecounter is not None:
             scorecounter(cleared_rows)
 
+    def get_curr_piece(self):
+        return self.curr_piece
+
+    def get_ghost_piece(self):
+        ghost = copy(self.curr_piece)
+        while self.piece_can_move(ghost, (0, 1)):
+            ghost.move((0, 1))
+        return ghost
+
+    def check_lock_delay(self):
+        return not self.piece_can_move(self.curr_piece, (0, 1))
