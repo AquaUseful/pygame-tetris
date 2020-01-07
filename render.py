@@ -19,7 +19,6 @@ class PygameTileField(object):
                                         y * self.tile_size[1] +
                                         self.coords[1],
                                         self.tile_size[0], self.tile_size[1])
-                print(tile_color)
                 pygame.draw.rect(surface, tile_color, tile_rect)
         if render_border:
             field_size = self.field.get_size()
@@ -38,7 +37,7 @@ class PygameTetrisPiece(object):
     def set_piece(self, piece: TetrisPiece):
         self.piece = piece
 
-    def render(self, surface):
+    def render(self, surface) -> None:
         if self.piece is None:
             return
         color = self.piece.get_color()
@@ -50,4 +49,32 @@ class PygameTetrisPiece(object):
 
 
 class PygamePushButton(object):
-    pass
+    def __init__(self,
+                 coords: tuple,
+                 color,
+                 font_color):
+        pass
+
+
+class PygameTextBox(object):
+    def __init__(self,
+                 coords: tuple,
+                 color,
+                 font_size: int,
+                 text: str = "",
+                 font=None):
+        self.coords = coords
+        self.font = pygame.font.Font(font, font_size)
+        self.color = color
+        self.text = text
+
+    def set_text(self, text: str) -> None:
+        self.text = str(text)
+
+    def render(self, surface, render_border: bool = False) -> None:
+        text = self.font.render(self.text, 1, self.color)
+        surface.blit(text, self.coords)
+        if render_border:
+            rect = pygame.Rect(
+                self.coords, (text.get_width(), text.get_height()))
+            pygame.draw.rect(surface, ColorMap.WHITE, rect, 1)
