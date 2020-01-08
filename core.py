@@ -197,9 +197,7 @@ class TetrisBoard(BaseTileField):
         curr_rot = temp_piece.get_rotation()
         temp_piece.rotate(rotation)
         new_rot = temp_piece.get_rotation()
-        print(curr_rot, new_rot)
         for kick in temp_piece.get_kick_data(curr_rot, new_rot):
-            print(kick)
             if self.piece_can_move(temp_piece, kick):
                 self.curr_piece.rotate(rotation)
                 self.move_curr_piece(kick)
