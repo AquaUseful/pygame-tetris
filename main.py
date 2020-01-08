@@ -1,8 +1,9 @@
 from core import TetrisBoard, Tetromino, Pentomino, ColorMap, RandomBag
-from render import PygameTileField, PygameTetrisPiece, PygameTextBox, PygamePushButton
+from render import *
 import pygame
 from sys import exit
 from random import choice
+from math import sqrt
 
 
 class GameWindow(object):
@@ -19,15 +20,30 @@ class Menu(object):
         self.surface = surface
         self.fps = 30
         self.tetris = Tetris(surface, Tetromino)
-        self.start_butt = PygamePushButton(
-            (0, 0), (200, 100), ColorMap.WHITE, ColorMap.CLEAR, 0, 10, None, self.tetris.run, "start")
+        self.pentris = Tetris(surface, Pentomino)
+        self.background = pygame.sprite.Group()
+        PygamePicture((-50, -50), self.background, "menu_background.png")
+        self.tetris_start_butt = PygamePushButton((250, 300), (200, 70), 70,
+                                                  ColorMap.WHITE, ColorMap.WHITE,
+                                                  5, None, self.tetris.run, "START")
+        self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 70,
+                                                   ColorMap.WHITE, ColorMap.WHITE,
+                                                   5, None, self.pentris.run, "START")
+        self.menu_rect = PygameFillingRect(
+            (200, 0), (300, 700), ColorMap.CLEAR, 0)
+        self.logo = pygame.sprite.Group()
+        PygamePicture((200, 0), self.logo, "logo.png", 0.25)
 
     def key_handler(self, key):
         pass
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
-        self.start_butt.render(self.surface)
+        self.background.draw(self.surface)
+        self.menu_rect.render(self.surface)
+        self.logo.draw(self.surface)
+        self.tetris_start_butt.render(self.surface)
+        self.pentris_start_butt.render(self.surface)
         pygame.display.flip()
 
     def run(self):
@@ -40,7 +56,8 @@ class Menu(object):
                     pygame.quit()
                     exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self.start_butt.check_click(event.pos)
+                    self.tetris_start_butt.check_click(event.pos)
+                    self.pentris_start_butt.check_click(event.pos)
 
 
 class Tetris(object):
@@ -51,15 +68,17 @@ class Tetris(object):
         self.board = TetrisBoard(ColorMap.CLEAR)
         self.piece_type = piece_type
         self.board_renderer = PygameTileField(
-            (0, -100), self.board, (20, 20), ColorMap.CLEAR)
+            (150, -900), self.board, (40, 40), ColorMap.CLEAR)
         self.curr_piece_renderer = PygameTetrisPiece(
-            (0, -100), None, (20, 20))
+            (150, -900), None, (40, 40))
         self.ghost_piece_renderer = PygameTetrisPiece(
-            (0, -100), None, (20, 20))
+            (150, -900), None, (40, 40))
         self.next_piece_renderer = PygameTetrisPiece(
-            (300, 20), None, (20, 20))
+            (600, 20), None, (20, 20))
         self.score_textbox = PygameTextBox(
-            (10, 10), ColorMap.WHITE, 30)
+            (10, 10), ColorMap.WHITE, 30, "0")
+        self.level_textbox = PygameTextBox(
+            (10, 30), ColorMap.WHITE, 30, "1")
         self.randomizer = RandomBag(piece_type.SHAPES)
         self.fps = 60
         # Debug
@@ -71,6 +90,12 @@ class Tetris(object):
         self.game_over = False
         self.score = 0
         self.level = 1
+        self.combo = 0
+        self.total_lines = 0
+        self.hold_piece = None
+
+    def hold_piece(self):
+        pass
 
     def key_handler(self, key):
         if key == pygame.K_RIGHT:
@@ -86,9 +111,32 @@ class Tetris(object):
             self.board.drop_curr_piece()
         elif key in (pygame.K_LCTRL, pygame.K_RCTRL, pygame.K_z):
             self.board.rotate_curr_piece(False)
+        elif key in (pygame.K_ESCAPE, pygame.K_F1):
+            print("pause")
 
     def score_counter(self, cleared_rows):
-        pass
+        if cleared_rows == 0:
+            self.combo = 0
+        elif cleared_rows == 1:
+            self.score += 100 * self.level
+            self.total_lines += 1
+        elif cleared_rows == 2:
+            self.score += 300 * self.level
+            self.total_lines += 3
+        elif cleared_rows == 3:
+            self.score += 500 * self.level
+            self.total_lines += 5
+        elif cleared_rows == 4:
+            self.score += 800 * self.level
+            self.total_lines += 8
+        if self.combo > 1:
+            self.score += self.combo * self.level + 50 * self.level
+        if self.total_lines >= self.level * 5:
+            self.total_lines = 0
+            self.level += 1
+            pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
+        self.score_textbox.set_text(str(self.score))
+        self.level_textbox.set_text(str(self.level))
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
@@ -97,12 +145,13 @@ class Tetris(object):
         self.curr_piece_renderer.render(self.surface)
         self.next_piece_renderer.render(self.surface)
         self.score_textbox.render(self.surface, True)
+        self.level_textbox.render(self.surface, True)
         # Debug
         self.lock_delay_textbox.render(self.surface, True)
         pygame.display.flip()
 
     def level_delay(self):
-        return 1000
+        return round(1000 / sqrt(self.level))
 
     def check_game_over(self):
         if self.game_over:
@@ -156,7 +205,13 @@ class Tetris(object):
 
 
 class Pause(object):
-    def __init__(self):
+    def __init__(self, surface):
+        self.surface = surface
+
+    def render(self):
+        pass
+
+    def run(self):
         pass
 
 

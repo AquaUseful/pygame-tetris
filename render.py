@@ -59,19 +59,19 @@ class PygamePushButton(object):
     def __init__(self,
                  coords: tuple,
                  size: tuple,
+                 font_size: int,
                  color: pygame.Color,
                  font_color: pygame.Color,
                  border_width: int,
-                 text_padding: int,
                  font,
                  action: callable,
                  text: str = ""):
         self.coords = coords
         self.size = size
+        self.font_size = font_size
         self.color = color
         self.font_color = font_color
         self.border_width = border_width
-        self.text_padding = text_padding
         self.font = font
         self.action = action
         self.text = text
@@ -79,14 +79,16 @@ class PygamePushButton(object):
 
     def _prepare(self):
         self.rect = pygame.Rect(self.coords, self.size)
-        font_size = self.size[1]
-        font = pygame.font.Font(self.font, font_size)
+        font = pygame.font.Font(self.font, self.font_size)
         self.pygame_text = font.render(self.text, 1, self.font_color)
+        text_w = self.pygame_text.get_width()
+        text_h = self.pygame_text.get_height()
+        self.text_coords = (self.coords[0] + self.size[0] // 2 - text_w // 2,
+                            self.coords[1] + self.size[1] // 2 - text_h // 2)
 
     def render(self, surface):
         pygame.draw.rect(surface, self.color, self.rect, self.border_width)
-        surface.blit(self.pygame_text, (self.coords[0] + self.text_padding,
-                                        self.coords[1] + self.text_padding))
+        surface.blit(self.pygame_text, self.text_coords)
 
     def check_click(self, mouse_coords):
         if self.rect.collidepoint(mouse_coords):
@@ -124,9 +126,28 @@ class PygameTextBox(object):
 
 
 class PygamePicture(pygame.sprite.Sprite):
-    def __init__(self, coords, group, filename):
+    def __init__(self, coords, group, filename, scale: float = 1.0):
         super().__init__(group)
         self.image = load_image(filename)
+        if scale != 1.0:
+            x = round(self.image.get_width() * scale)
+            y = round(self.image.get_height() * scale)
+            self.image = pygame.transform.smoothscale(self.image, (x, y))
         self.rect = self.image.get_rect()
         self.rect.x = coords[0]
         self.rect.y = coords[1]
+
+
+class PygameFillingRect(object):
+    def __init__(self, coords, size, color, border):
+        self.coords = coords
+        self.size = size
+        self.color = color
+        self.border = border
+        self._prepare()
+
+    def _prepare(self):
+        self.rect = pygame.Rect(self.coords, self.size)
+
+    def render(self, surface):
+        pygame.draw.rect(surface, self.color, self.rect, self.border)
