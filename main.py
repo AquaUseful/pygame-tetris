@@ -1,5 +1,5 @@
 from core import TetrisBoard, Tetromino, Pentomino, ColorMap, RandomBag
-from render import PygameTileField, PygameTetrisPiece, PygameTextBox
+from render import PygameTileField, PygameTetrisPiece, PygameTextBox, PygamePushButton
 import pygame
 from sys import exit
 from random import choice
@@ -11,12 +11,36 @@ class GameWindow(object):
         pygame.font.init()
         self.screen = pygame.display.set_mode(size)
         main_menu = Menu(self.screen)
+        main_menu.run()
 
 
 class Menu(object):
     def __init__(self, surface):
+        self.surface = surface
+        self.fps = 30
         self.tetris = Tetris(surface, Tetromino)
-        self.tetris.run()
+        self.start_butt = PygamePushButton(
+            (0, 0), (200, 100), ColorMap.WHITE, ColorMap.CLEAR, 0, 10, None, self.tetris.run, "start")
+
+    def key_handler(self, key):
+        pass
+
+    def render(self):
+        self.surface.fill(ColorMap.CLEAR)
+        self.start_butt.render(self.surface)
+        pygame.display.flip()
+
+    def run(self):
+        self.clock = pygame.time.Clock()
+        while True:
+            self.render()
+            self.clock.tick(self.fps)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.start_butt.check_click(event.pos)
 
 
 class Tetris(object):
@@ -38,6 +62,8 @@ class Tetris(object):
             (10, 10), ColorMap.WHITE, 30)
         self.randomizer = RandomBag(piece_type.SHAPES)
         self.fps = 60
+        # Debug
+        self.lock_delay_textbox = PygameTextBox((100, 10), ColorMap.RED, 30)
         self.reset()
 
     def reset(self):
@@ -58,11 +84,11 @@ class Tetris(object):
             self.lock_delay_frames = self.fps
         elif key == pygame.K_DOWN:
             self.board.drop_curr_piece()
-        # elif key == pygame.
+        elif key in (pygame.K_LCTRL, pygame.K_RCTRL, pygame.K_z):
+            self.board.rotate_curr_piece(False)
 
     def score_counter(self, cleared_rows):
-        self.score += cleared_rows ** 2 * 100
-        self.score_textbox.set_text(self.score)
+        pass
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
@@ -71,10 +97,12 @@ class Tetris(object):
         self.curr_piece_renderer.render(self.surface)
         self.next_piece_renderer.render(self.surface)
         self.score_textbox.render(self.surface, True)
+        # Debug
+        self.lock_delay_textbox.render(self.surface, True)
         pygame.display.flip()
 
     def level_delay(self):
-        return 500
+        return 1000
 
     def check_game_over(self):
         if self.game_over:
@@ -85,7 +113,7 @@ class Tetris(object):
 
     def run(self):
         next_piece = self.choose_piece((0, 0))
-        self.board.new_piece(self.choose_piece((4, 20)))
+        self.board.new_piece(self.choose_piece((4, 22)))
         self.clock = pygame.time.Clock()
         pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
         self.lock_delay_frames = 0
@@ -104,7 +132,6 @@ class Tetris(object):
             else:
                 self.lock_delay_frames = 0
                 falling = True
-
             if self.lock_delay_frames >= self.fps // 2:
                 if not falling:
                     self.game_over = True
@@ -112,7 +139,7 @@ class Tetris(object):
                 falling = False
                 self.board.put_curr_piece()
                 self.board.clear_filled_rows(self.score_counter)
-                next_piece.move((4, 20))
+                next_piece.move((4, 22))
                 self.board.new_piece(next_piece)
                 next_piece = self.choose_piece((0, 0))
             self.check_game_over()
@@ -121,8 +148,16 @@ class Tetris(object):
             ghost_piece = self.board.get_ghost_piece()
             self.ghost_piece_renderer.set_piece(ghost_piece)
             self.next_piece_renderer.set_piece(next_piece)
+            # Debug
+            self.lock_delay_textbox.set_text(str(self.lock_delay_frames))
+            # Debug end
             self.render()
             self.clock.tick(self.fps)
+
+
+class Pause(object):
+    def __init__(self):
+        pass
 
 
 def main():
