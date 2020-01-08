@@ -272,6 +272,7 @@ class TetrisBoard(BaseTileField):
     def hard_drop_curr_piece(self) -> None:
         while self.piece_can_move(self.curr_piece, (0, 1)):
             self.curr_piece.move((0, 1))
+        self.curr_piece_moved = False
 
     def piece_can_move(self, piece, coords_delta: tuple):
         temp_piece = copy(piece)
