@@ -1,6 +1,13 @@
 from typing import Iterable
 import pygame
 from core import TetrisPiece, TetrisBoard, ColorMap, Tetromino
+import os
+
+
+def load_image(name, colorkey=None):
+    fullname = os.path.join('data', name)
+    image = pygame.image.load(fullname).convert()
+    return image
 
 
 class PygameTileField(object):
@@ -72,7 +79,7 @@ class PygamePushButton(object):
 
     def _prepare(self):
         self.rect = pygame.Rect(self.coords, self.size)
-        font_size = self.size[1] - self.text_padding
+        font_size = self.size[1]
         font = pygame.font.Font(self.font, font_size)
         self.pygame_text = font.render(self.text, 1, self.font_color)
 
@@ -114,3 +121,12 @@ class PygameTextBox(object):
             rect = pygame.Rect(
                 self.coords, (text.get_width(), text.get_height()))
             pygame.draw.rect(surface, ColorMap.WHITE, rect, 1)
+
+
+class PygamePicture(pygame.sprite.Sprite):
+    def __init__(self, coords, group, filename):
+        super().__init__(group)
+        self.image = load_image(filename)
+        self.rect = self.image.get_rect()
+        self.rect.x = coords[0]
+        self.rect.y = coords[1]
