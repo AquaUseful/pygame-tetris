@@ -107,6 +107,9 @@ class TetrisPiece(object):
     def get_kick_data(self, old_rot, new_rot):
         return self.shape.get_kick_data(old_rot, new_rot)
 
+    def set_coords(self, coords):
+        self.coords = coords
+
 
 class Tetromino(TetrisPiece):
     wall_kicks = {
@@ -258,6 +261,7 @@ class TetrisBoard(BaseTileField):
                 self.move_curr_piece((-1, 0))
 
     def new_piece(self, piece):
+        piece.set_coords((4, 21))
         self.curr_piece = piece
 
     def put_curr_piece(self) -> None:

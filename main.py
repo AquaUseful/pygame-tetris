@@ -33,6 +33,7 @@ class Menu(object):
             (200, 0), (300, 700), ColorMap.CLEAR, 0)
         self.logo = pygame.sprite.Group()
         PygamePicture((200, 0), self.logo, "logo.png", 0.25)
+        self.clock = pygame.time.Clock()
 
     def key_handler(self, key):
         pass
@@ -47,10 +48,8 @@ class Menu(object):
         pygame.display.flip()
 
     def run(self):
-        self.clock = pygame.time.Clock()
         while True:
-            self.render()
-            self.clock.tick(self.fps)
+            print("menu")
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -58,6 +57,8 @@ class Menu(object):
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     self.tetris_start_butt.check_click(event.pos)
                     self.pentris_start_butt.check_click(event.pos)
+            self.render()
+            self.clock.tick(self.fps)
 
 
 class Tetris(object):
@@ -65,6 +66,7 @@ class Tetris(object):
 
     def __init__(self, surface, piece_type):
         self.surface = surface
+        self.pause_screen = Pause(surface, self)
         self.board = TetrisBoard(ColorMap.CLEAR)
         self.piece_type = piece_type
         self.board_renderer = PygameTileField(
@@ -75,6 +77,8 @@ class Tetris(object):
             (150, -900), None, (40, 40))
         self.next_piece_renderer = PygameTetrisPiece(
             (600, 20), None, (20, 20))
+        self.hold_piece_renderer = PygameTetrisPiece(
+            (600, 100), None, (20, 20))
         self.score_textbox = PygameTextBox(
             (10, 10), ColorMap.WHITE, 30, "0")
         self.level_textbox = PygameTextBox(
@@ -83,6 +87,8 @@ class Tetris(object):
         self.fps = 60
         # Debug
         self.lock_delay_textbox = PygameTextBox((100, 10), ColorMap.RED, 30)
+        # Debug end
+        self.clock = pygame.time.Clock()
         self.reset()
 
     def reset(self):
@@ -92,10 +98,30 @@ class Tetris(object):
         self.level = 1
         self.combo = 0
         self.total_lines = 0
+        self.randomizer.shuffle()
         self.hold_piece = None
+        self.next_piece = self.choose_piece()
+        self.hold_used = False
+        self.exit = False
+        self.restart = False
+        self.board.new_piece(self.choose_piece())
+        pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
+        self.lock_delay_frames = 0
 
-    def hold_piece(self):
-        pass
+    def hold(self):
+        if self.hold_used:
+            return
+        self.hold_used = True
+        if self.hold_piece is None:
+            self.hold_piece = self.board.get_curr_piece()
+            self.board.new_piece(self.next_piece)
+            self.next_piece = self.choose_piece()
+        else:
+            new_hold_piece = self.board.get_curr_piece()
+            self.board.new_piece(self.hold_piece)
+            self.hold_piece = new_hold_piece
+        self.hold_piece.set_coords((0, 0))
+        self.hold_piece_renderer.set_piece(self.hold_piece)
 
     def key_handler(self, key):
         if key == pygame.K_RIGHT:
@@ -112,7 +138,9 @@ class Tetris(object):
         elif key in (pygame.K_LCTRL, pygame.K_RCTRL, pygame.K_z):
             self.board.rotate_curr_piece(False)
         elif key in (pygame.K_ESCAPE, pygame.K_F1):
-            print("pause")
+            self.pause_screen.run()
+        elif key in (pygame.K_LSHIFT, pygame.K_RSHIFT, pygame.K_c):
+            self.hold()
 
     def score_counter(self, cleared_rows):
         if cleared_rows == 0:
@@ -144,6 +172,7 @@ class Tetris(object):
         self.ghost_piece_renderer.render(self.surface)
         self.curr_piece_renderer.render(self.surface)
         self.next_piece_renderer.render(self.surface)
+        self.hold_piece_renderer.render(self.surface)
         self.score_textbox.render(self.surface, True)
         self.level_textbox.render(self.surface, True)
         # Debug
@@ -153,21 +182,21 @@ class Tetris(object):
     def level_delay(self):
         return round(1000 / sqrt(self.level))
 
-    def check_game_over(self):
-        if self.game_over:
-            print("Gameover")
-
-    def choose_piece(self, coords):
-        return self.piece_type(coords, *next(self.randomizer))
+    def choose_piece(self):
+        return self.piece_type((0, 0), *next(self.randomizer))
 
     def run(self):
-        next_piece = self.choose_piece((0, 0))
-        self.board.new_piece(self.choose_piece((4, 22)))
-        self.clock = pygame.time.Clock()
-        pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
-        self.lock_delay_frames = 0
+        self.reset()
         falling = False
         while True:
+            print("game")
+            if self.exit:
+                break
+            elif self.restart:
+                self.reset()
+            elif self.game_over:
+                exit()
+                break
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -184,35 +213,90 @@ class Tetris(object):
             if self.lock_delay_frames >= self.fps // 2:
                 if not falling:
                     self.game_over = True
-                self.lock_delay_frames = 0
                 falling = False
+                self.hold_used = False
+                self.lock_delay_frames = 0
                 self.board.put_curr_piece()
                 self.board.clear_filled_rows(self.score_counter)
-                next_piece.move((4, 22))
-                self.board.new_piece(next_piece)
-                next_piece = self.choose_piece((0, 0))
-            self.check_game_over()
+                self.board.new_piece(self.next_piece)
+                self.next_piece = self.choose_piece()
             curr_piece = self.board.get_curr_piece()
             self.curr_piece_renderer.set_piece(curr_piece)
             ghost_piece = self.board.get_ghost_piece()
             self.ghost_piece_renderer.set_piece(ghost_piece)
-            self.next_piece_renderer.set_piece(next_piece)
+            self.next_piece_renderer.set_piece(self.next_piece)
             # Debug
             self.lock_delay_textbox.set_text(str(self.lock_delay_frames))
             # Debug end
             self.render()
             self.clock.tick(self.fps)
 
+    def set_exit_flag(self):
+        self.exit = True
+
+    def set_restart_flag(self):
+        self.restart = True
+
 
 class Pause(object):
-    def __init__(self, surface):
+    def __init__(self, surface, game_field):
         self.surface = surface
+        self.game_field = game_field
+        self.resume_butt = PygamePushButton((250, 300), (200, 70), 70,
+                                            ColorMap.WHITE, ColorMap.WHITE,
+                                            5, None, self.resume_game, "Resume")
+        self.exit_butt = PygamePushButton((250, 400), (200, 70), 70,
+                                          ColorMap.WHITE, ColorMap.WHITE,
+                                          5, None, self.exit_game, "Exit")
+        self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
+                                             ColorMap.WHITE, ColorMap.WHITE,
+                                             5, None, self.restart_game, "Restart")
+        self.fps = 30
+        self.clock = pygame.time.Clock()
 
     def render(self):
-        pass
+        self.surface.fill(ColorMap.CLEAR)
+        self.resume_butt.render(self.surface)
+        self.exit_butt.render(self.surface)
+        self.restart_butt.render(self.surface)
+        pygame.display.flip()
+
+    def resume_game(self):
+        self.exit = True
+
+    def exit_game(self):
+        self.exit_game = True
+        self.exit = True
+
+    def restart_game(self):
+        self.restart_game = True
+        self.exit = True
+
+    def reset(self):
+        self.restart_game = False
+        self.exit_game = False
+        self.exit = False
 
     def run(self):
-        pass
+        self.reset()
+        while True:
+            print("paused")
+            if self.exit:
+                break
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.resume_butt.check_click(event.pos)
+                    self.exit_butt.check_click(event.pos)
+                    self.restart_butt.check_click(event.pos)
+            self.render()
+            self.clock.tick(self.fps)
+        if self.exit_game:
+            self.game_field.set_exit_flag()
+        elif self.restart_game:
+            self.game_field.set_restart_flag()
 
 
 def main():
