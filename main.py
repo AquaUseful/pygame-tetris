@@ -74,6 +74,7 @@ class Tetris(object):
     def __init__(self, surface, piece_type):
         self.surface = surface
         self.pause_screen = Pause(surface, self)
+        self.gameover_screen = GameOver(surface, self)
         self.board = TetrisBoard(ColorMap.CLEAR)
         self.piece_type = piece_type
         self.board_renderer = PygameTileField(
@@ -102,6 +103,7 @@ class Tetris(object):
         self.hard_drop_sound = load_sound("hard_drop.wav")
         self.rotate_sound = load_sound("rotate.wav")
         self.pause_sound = load_sound("pause.wav")
+        self.gameover_sound = load_sound("gameover.wav")
 
     def reset(self):
         self.board.reset()
@@ -214,8 +216,9 @@ class Tetris(object):
             elif self.restart:
                 self.reset()
             elif self.game_over:
-                exit()
-                break
+                self.main_theme.stop()
+                self.gameover_sound.play()
+                self.gameover_screen.run()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -319,8 +322,57 @@ class Pause(object):
 
 
 class GameOver(object):
-    def __init__(self, surface):
+    def __init__(self, surface, game_field):
         self.surface = surface
+        self.game_field = game_field
+        self.exit_butt = PygamePushButton((250, 400), (200, 70), 70,
+                                          ColorMap.WHITE, ColorMap.WHITE,
+                                          5, None, self.exit_game, "Exit")
+        self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
+                                             ColorMap.WHITE, ColorMap.WHITE,
+                                             5, None, self.restart_game, "Restart")
+        self.fps = 30
+        self.clock = pygame.time.Clock()
+
+    def render(self):
+        self.surface.fill(ColorMap.CLEAR)
+        self.exit_butt.render(self.surface)
+        self.restart_butt.render(self.surface)
+        pygame.display.flip()
+
+
+    def exit_game(self):
+        self.exit_game = True
+        self.exit = True
+
+    def restart_game(self):
+        self.restart_game = True
+        self.exit = True
+
+    def reset(self):
+        self.restart_game = False
+        self.exit_game = False
+        self.exit = False
+
+    def run(self):
+        self.reset()
+        while True:
+            print("gameover")
+            if self.exit:
+                break
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.exit_butt.check_click(event.pos)
+                    self.restart_butt.check_click(event.pos)
+            self.render()
+            self.clock.tick(self.fps)
+        if self.exit_game:
+            self.game_field.set_exit_flag()
+        elif self.restart_game:
+            self.game_field.set_restart_flag()
 
 
 def main():
