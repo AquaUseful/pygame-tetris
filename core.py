@@ -110,6 +110,9 @@ class TetrisPiece(object):
     def set_coords(self, coords):
         self.coords = coords
 
+    def set_rotation(self, rotation):
+        self.rotation = rotation
+
 
 class Tetromino(TetrisPiece):
     wall_kicks = {
@@ -324,6 +327,9 @@ class TetrisBoard(BaseTileField):
         curr_piece_moved = self.curr_piece_moved
         self.curr_piece_moved = False
         return not (self.piece_can_move(self.curr_piece, (0, 1)) or curr_piece_moved)
+
+    def get_curr_piece_moved(self):
+        return self.curr_piece_moved
 
 
 class RandomBag(object):
