@@ -6,10 +6,17 @@ from random import choice
 from math import sqrt
 
 
+def load_sound(name):
+    fullname = os.path.join('data', name)
+    sound = pygame.mixer.Sound(fullname)
+    return sound
+
+
 class GameWindow(object):
     def __init__(self, size: tuple):
         pygame.init()
         pygame.font.init()
+        pygame.mixer.init()
         self.screen = pygame.display.set_mode(size)
         main_menu = Menu(self.screen)
         main_menu.run()
@@ -89,7 +96,12 @@ class Tetris(object):
         self.lock_delay_textbox = PygameTextBox((100, 10), ColorMap.RED, 30)
         # Debug end
         self.clock = pygame.time.Clock()
-        self.reset()
+        self.main_theme = load_sound("main_theme.wav")
+        self.main_theme.set_volume(0.3)
+        self.hold_sound = load_sound("hold.wav")
+        self.hard_drop_sound = load_sound("hard_drop.wav")
+        self.rotate_sound = load_sound("rotate.wav")
+        self.pause_sound = load_sound("pause.wav")
 
     def reset(self):
         self.board.reset()
@@ -107,10 +119,13 @@ class Tetris(object):
         self.board.new_piece(self.choose_piece())
         pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
         self.lock_delay_frames = 0
+        self.main_theme.play(-1)
 
     def hold(self):
         if self.hold_used:
             return
+        self.hold_sound.play()
+        self.clock.tick(5)
         self.hold_used = True
         if self.hold_piece is None:
             self.hold_piece = self.board.get_curr_piece()
@@ -131,6 +146,8 @@ class Tetris(object):
         elif key in (pygame.K_UP, pygame.K_x):
             self.board.rotate_curr_piece(True)
         elif key == pygame.K_SPACE:
+            self.hard_drop_sound.play()
+            self.clock.tick(10)
             self.board.hard_drop_curr_piece()
             self.lock_delay_frames = self.fps
         elif key == pygame.K_DOWN:
@@ -138,6 +155,8 @@ class Tetris(object):
         elif key in (pygame.K_LCTRL, pygame.K_RCTRL, pygame.K_z):
             self.board.rotate_curr_piece(False)
         elif key in (pygame.K_ESCAPE, pygame.K_F1):
+            self.pause_sound.play()
+            self.clock.tick(5)
             self.pause_screen.run()
         elif key in (pygame.K_LSHIFT, pygame.K_RSHIFT, pygame.K_c):
             self.hold()
@@ -297,6 +316,11 @@ class Pause(object):
             self.game_field.set_exit_flag()
         elif self.restart_game:
             self.game_field.set_restart_flag()
+
+
+class GameOver(object):
+    def __init__(self, surface):
+        self.surface = surface
 
 
 def main():
