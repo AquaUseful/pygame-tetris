@@ -4,6 +4,7 @@ import pygame
 from sys import exit
 from random import choice
 from math import sqrt
+import os
 
 
 def load_sound(name):
@@ -24,22 +25,27 @@ class GameWindow(object):
 
 class Menu(object):
     def __init__(self, surface):
+        # Save init params
         self.surface = surface
-        self.fps = 30
-        self.tetris = Tetris(surface, Tetromino)
-        self.pentris = Tetris(surface, Pentomino)
+        # Initialise additional windows
+        self.tetris = Tetris(surface, Tetromino, "tetris_hs")
+        self.pentris = Tetris(surface, Pentomino, "pentix_hs")
+        # Initialise pygame renderers
         self.background = pygame.sprite.Group()
         PygamePicture((-50, -50), self.background, "menu_background.png")
         self.tetris_start_butt = PygamePushButton((250, 300), (200, 70), 70,
                                                   ColorMap.WHITE, ColorMap.WHITE,
-                                                  5, None, self.tetris.run, "START")
+                                                  5, None, self.tetris.run, "TETRIS")
         self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 70,
                                                    ColorMap.WHITE, ColorMap.WHITE,
-                                                   5, None, self.pentris.run, "START")
+                                                   5, None, self.pentris.run, "PENTIX")
         self.menu_rect = PygameFillingRect(
             (200, 0), (300, 700), ColorMap.CLEAR, 0)
         self.logo = pygame.sprite.Group()
         PygamePicture((200, 0), self.logo, "logo.png", 0.25)
+        # Set fps
+        self.fps = 30
+        # Ininitalize clock
         self.clock = pygame.time.Clock()
 
     def key_handler(self, key):
@@ -71,12 +77,17 @@ class Menu(object):
 class Tetris(object):
     DROP_EVENT = pygame.USEREVENT + 1
 
-    def __init__(self, surface, piece_type):
+    def __init__(self, surface, piece_type, highscore_filename):
+        # Save init params
         self.surface = surface
+        self.piece_type = piece_type
+        self.highscore_filename = highscore_filename
+        # Initialise additional windows
         self.pause_screen = Pause(surface, self)
         self.gameover_screen = GameOver(surface, self)
+        # Initialise board
         self.board = TetrisBoard(ColorMap.CLEAR)
-        self.piece_type = piece_type
+        # Innitialize pygame renderers
         self.board_renderer = PygameTileField(
             (150, -900), self.board, (40, 40), ColorMap.CLEAR)
         self.curr_piece_renderer = PygameTetrisPiece(
@@ -88,15 +99,18 @@ class Tetris(object):
         self.hold_piece_renderer = PygameTetrisPiece(
             (600, 100), None, (20, 20))
         self.score_textbox = PygameTextBox(
-            (10, 10), ColorMap.WHITE, 30, "0")
+            (10, 10), ColorMap.WHITE, 30, "Score: 0")
         self.level_textbox = PygameTextBox(
-            (10, 30), ColorMap.WHITE, 30, "1")
+            (10, 30), ColorMap.WHITE, 30, "Level: 1")
+        # Initialize randomzer
         self.randomizer = RandomBag(piece_type.SHAPES)
+        # Set fps
         self.fps = 60
         # Debug
         self.lock_delay_textbox = PygameTextBox((100, 10), ColorMap.RED, 30)
-        # Debug end
+        # Initialize clock
         self.clock = pygame.time.Clock()
+        # Load all sounds
         self.main_theme = load_sound("main_theme.wav")
         self.main_theme.set_volume(0.3)
         self.hold_sound = load_sound("hold.wav")
@@ -185,8 +199,8 @@ class Tetris(object):
             self.total_lines = 0
             self.level += 1
             pygame.time.set_timer(self.DROP_EVENT, self.level_delay())
-        self.score_textbox.set_text(str(self.score))
-        self.level_textbox.set_text(str(self.level))
+        self.score_textbox.set_text(f"Score: {self.score}")
+        self.level_textbox.set_text(f"Level: {self.level}")
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
@@ -213,8 +227,10 @@ class Tetris(object):
         while True:
             print("game")
             if self.exit:
+                self.save_score()
                 break
             elif self.restart:
+                self.save_score()
                 self.reset()
             elif self.game_over:
                 self.main_theme.stop()
@@ -263,6 +279,28 @@ class Tetris(object):
 
     def set_restart_flag(self):
         self.restart = True
+
+    def get_score(self):
+        return self.score
+
+    def get_level(self):
+        return self.level
+
+    def save_score(self):
+        if os.path.isfile(self.highscore_filename):
+            with open(self.highscore_filename) as f:
+                data = f.read().strip()
+            if data:
+                h_score, h_level = map(int, data.split())
+            else:
+                h_score, h_level = 0, 0
+        else:
+            h_score, h_level = 0, 0
+        print(h_score, h_level)
+        h_score = max(h_score, self.score)
+        h_level = max(h_level, self.level)
+        with open(self.highscore_filename, "w") as f:
+            f.write(f"{h_score} {h_level}")
 
 
 class Pause(object):
@@ -336,7 +374,7 @@ class GameOver(object):
         self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
                                              ColorMap.WHITE, ColorMap.WHITE,
                                              5, None, self.restart_game, "Restart")
-        self.score_textbox = PygameTextBox((250, 400), ColorMap.WHITE, 50, "0")
+        self.score_textbox = PygameTextBox((230, 300), ColorMap.WHITE, 50, "0")
         self.fps = 30
         self.clock = pygame.time.Clock()
 
@@ -344,6 +382,7 @@ class GameOver(object):
         self.surface.fill(ColorMap.CLEAR)
         self.exit_butt.render(self.surface)
         self.restart_butt.render(self.surface)
+        self.score_textbox.render(self.surface)
         pygame.display.flip()
 
     def exit_game(self):
@@ -358,6 +397,7 @@ class GameOver(object):
         self.restart_game = False
         self.exit_game = False
         self.exit = False
+        self.score_textbox.set_text("Score: " + str(self.game_field.get_score()))
 
     def run(self):
         self.reset()
@@ -379,6 +419,8 @@ class GameOver(object):
         elif self.restart_game:
             self.game_field.set_restart_flag()
 
+class HighScores(object):
+    pass
 
 def main():
     window = GameWindow((700, 700))
