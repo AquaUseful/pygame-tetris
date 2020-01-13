@@ -116,6 +116,7 @@ class Tetris(object):
         self.hold_piece = None
         self.next_piece = self.choose_piece()
         self.hold_used = False
+        self.hard_drop_used = False
         self.exit = False
         self.restart = False
         self.board.new_piece(self.choose_piece())
@@ -232,16 +233,20 @@ class Tetris(object):
             else:
                 self.lock_delay_frames = 0
                 falling = True
+            print(f"FD: {self.board.check_lock_delay()}")
+            print(f"Falling: {falling}")
+            print(f"LD frames: {self.lock_delay_frames}")
             if self.lock_delay_frames >= self.fps // 2:
-                if not falling:
-                    self.game_over = True
-                falling = False
                 self.hold_used = False
                 self.lock_delay_frames = 0
                 self.board.put_curr_piece()
                 self.board.clear_filled_rows(self.score_counter)
+                self.next_piece.set_coords((4, 21))
+                if self.board.piece_collides_tiles(self.next_piece):
+                    self.game_over = True
                 self.board.new_piece(self.next_piece)
                 self.next_piece = self.choose_piece()
+                print("Next piece")
             curr_piece = self.board.get_curr_piece()
             self.curr_piece_renderer.set_piece(curr_piece)
             ghost_piece = self.board.get_ghost_piece()
@@ -282,6 +287,7 @@ class Pause(object):
         self.exit_butt.render(self.surface)
         self.restart_butt.render(self.surface)
         pygame.display.flip()
+
 
     def resume_game(self):
         self.exit = True
@@ -339,7 +345,6 @@ class GameOver(object):
         self.exit_butt.render(self.surface)
         self.restart_butt.render(self.surface)
         pygame.display.flip()
-
 
     def exit_game(self):
         self.exit_game = True
