@@ -7,7 +7,7 @@ from math import sqrt
 
 
 def load_sound(name):
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('data/sounds', name)
     sound = pygame.mixer.Sound(fullname)
     return sound
 
@@ -288,7 +288,6 @@ class Pause(object):
         self.restart_butt.render(self.surface)
         pygame.display.flip()
 
-
     def resume_game(self):
         self.exit = True
 
@@ -337,6 +336,7 @@ class GameOver(object):
         self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
                                              ColorMap.WHITE, ColorMap.WHITE,
                                              5, None, self.restart_game, "Restart")
+        self.score_textbox = PygameTextBox((250, 400), ColorMap.WHITE, 50, "0")
         self.fps = 30
         self.clock = pygame.time.Clock()
 
