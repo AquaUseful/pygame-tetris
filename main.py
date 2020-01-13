@@ -6,11 +6,27 @@ from random import choice
 from math import sqrt
 import os
 
+TETSIS_HS_FILENAME = "tetris_hs"
+PENTIX_HS_FILENAME = "pentix_hs"
+
 
 def load_sound(name):
     fullname = os.path.join('data/sounds', name)
     sound = pygame.mixer.Sound(fullname)
     return sound
+
+
+def load_highscores(highscores_filename):
+    if os.path.isfile(highscores_filename):
+        with open(highscores_filename) as f:
+            data = f.read().strip()
+        if data:
+            h_score, h_level = map(int, data.split())
+        else:
+            h_score, h_level = 0, 0
+    else:
+        h_score, h_level = 0, 0
+    return (h_score, h_level)
 
 
 class GameWindow(object):
@@ -28,8 +44,9 @@ class Menu(object):
         # Save init params
         self.surface = surface
         # Initialise additional windows
-        self.tetris = Tetris(surface, Tetromino, "tetris_hs")
-        self.pentris = Tetris(surface, Pentomino, "pentix_hs")
+        self.tetris = Tetris(surface, Tetromino, TETSIS_HS_FILENAME)
+        self.pentris = Tetris(surface, Pentomino, PENTIX_HS_FILENAME)
+        self.hs = HighScores(surface)
         # Initialise pygame renderers
         self.background = pygame.sprite.Group()
         PygamePicture((-50, -50), self.background, "menu_background.png")
@@ -39,6 +56,9 @@ class Menu(object):
         self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 70,
                                                    ColorMap.WHITE, ColorMap.WHITE,
                                                    5, None, self.pentris.run, "PENTIX")
+        self.highscores_butt = PygamePushButton((250, 500), (200, 70), 70,
+                                                ColorMap.WHITE, ColorMap.WHITE,
+                                                5, None, self.hs.run, "HIGHSCORES")
         self.menu_rect = PygameFillingRect(
             (200, 0), (300, 700), ColorMap.CLEAR, 0)
         self.logo = pygame.sprite.Group()
@@ -47,6 +67,7 @@ class Menu(object):
         self.fps = 30
         # Ininitalize clock
         self.clock = pygame.time.Clock()
+
 
     def key_handler(self, key):
         pass
@@ -58,6 +79,7 @@ class Menu(object):
         self.logo.draw(self.surface)
         self.tetris_start_butt.render(self.surface)
         self.pentris_start_butt.render(self.surface)
+        self.highscores_butt.render(self.surface)
         pygame.display.flip()
 
     def run(self):
@@ -70,6 +92,7 @@ class Menu(object):
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     self.tetris_start_butt.check_click(event.pos)
                     self.pentris_start_butt.check_click(event.pos)
+                    self.highscores_butt.check_click(event.pos)
             self.render()
             self.clock.tick(self.fps)
 
@@ -397,7 +420,8 @@ class GameOver(object):
         self.restart_game = False
         self.exit_game = False
         self.exit = False
-        self.score_textbox.set_text("Score: " + str(self.game_field.get_score()))
+        self.score_textbox.set_text(
+            "Score: " + str(self.game_field.get_score()))
 
     def run(self):
         self.reset()
@@ -419,8 +443,63 @@ class GameOver(object):
         elif self.restart_game:
             self.game_field.set_restart_flag()
 
+
 class HighScores(object):
-    pass
+    def __init__(self, surface):
+        # Save init params
+        self.surface = surface
+        # Create renderers
+        self.tetris_highscore_textbox = PygameTextBox(
+            (0, 0), ColorMap.WHITE, 50)
+        self.pentix_highscore_textbox = PygameTextBox(
+            (0, 100), ColorMap.WHITE, 50)
+        self.tetris_highlevel_textbox = PygameTextBox(
+            (300, 50), ColorMap.WHITE, 50)
+        self.pentix_highlevel_textbox = PygameTextBox(
+            (300, 150), ColorMap.WHITE, 50)
+        self.exit_butt = PygamePushButton((250, 400), (200, 70), 70,
+                                          ColorMap.WHITE, ColorMap.WHITE,
+                                          5, None, self.window_exit, "Exit")
+        # Set fps
+        self.fps = 30
+        # Initialise clock
+        self.clock = pygame.time.Clock()
+
+    def window_exit(self):
+        self.exit = True
+
+    def render(self):
+        self.surface.fill(ColorMap.CLEAR)
+        self.tetris_highscore_textbox.render(self.surface)
+        self.tetris_highlevel_textbox.render(self.surface)
+        self.pentix_highscore_textbox.render(self.surface)
+        self.pentix_highlevel_textbox.render(self.surface)
+        pygame.display.flip()
+
+    def reset(self):
+        self.exit = False
+        h_score, h_level = load_highscores(TETSIS_HS_FILENAME)
+        self.tetris_highscore_textbox.set_text(f"Tetris highscore: {h_score}")
+        self.tetris_highlevel_textbox.set_text(f"Tetris max level: {h_level}")
+        h_score, h_level = load_highscores(PENTIX_HS_FILENAME)
+        self.pentix_highscore_textbox.set_text(f"Pentix highscore: {h_score}")
+        self.pentix_highlevel_textbox.set_text(f"Pentix max level: {h_level}")
+
+    def run(self):
+        self.reset()
+        while True:
+            print("highscores")
+            if self.exit:
+                break
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    self.exit_butt.check_click(event.pos)
+                self.render()
+                self.clock.tick(self.fps)
+
 
 def main():
     window = GameWindow((700, 700))
