@@ -117,13 +117,27 @@ class Tetris(object):
         self.ghost_piece_renderer = PygameTetrisPiece(
             (150, -900), None, (40, 40))
         self.next_piece_renderer = PygameTetrisPiece(
-            (600, 20), None, (20, 20))
+            (600, 50), None, (20, 20))
         self.hold_piece_renderer = PygameTetrisPiece(
-            (600, 100), None, (20, 20))
+            (600, 200), None, (20, 20))
         self.score_textbox = PygameTextBox(
             (10, 10), ColorMap.WHITE, 30, "Score: 0")
         self.level_textbox = PygameTextBox(
-            (10, 30), ColorMap.WHITE, 30, "Level: 1")
+            (10, 40), ColorMap.WHITE, 30, "Level: 1")
+        self.board_rect = PygameFillingRect(
+            (150, -900), (400, 1600), ColorMap.BG, 0)
+        self.score_rect = PygameFillingRect((5, 5), (140, 60), ColorMap.BG, 0)
+        self.next_piece_rect = PygameFillingRect(
+            (555, 5), (140, 140), ColorMap.BG, 0)
+        self.next_piece_text = PygameTextBox(
+            (600, 10), ColorMap.WHITE, 35, "Next")
+        self.hold_piece_rect = PygameFillingRect(
+            (555, 150), (140, 140), ColorMap.BG, 0)
+        self.hold_piece_text = PygameTextBox(
+            (600, 160), ColorMap.WHITE, 35, "Hold")
+        # Initialise bg sprite
+        self.background = pygame.sprite.Group()
+        PygamePicture((-50, -50), self.background, "game_background.jpg")
         # Initialize randomzer
         self.randomizer = RandomBag(piece_type.SHAPES)
         # Set fps
@@ -226,15 +240,22 @@ class Tetris(object):
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
-        self.board_renderer.render(self.surface, True)
+        self.background.draw(self.surface)
+        self.board_rect.render(self.surface)
+        self.score_rect.render(self.surface)
+        self.next_piece_rect.render(self.surface)
+        self.next_piece_text.render(self.surface)
+        self.hold_piece_rect.render(self.surface)
+        self.hold_piece_text.render(self.surface)
+        self.board_renderer.render(self.surface)
         self.ghost_piece_renderer.render(self.surface)
         self.curr_piece_renderer.render(self.surface)
         self.next_piece_renderer.render(self.surface)
         self.hold_piece_renderer.render(self.surface)
-        self.score_textbox.render(self.surface, True)
-        self.level_textbox.render(self.surface, True)
+        self.score_textbox.render(self.surface)
+        self.level_textbox.render(self.surface)
         # Debug
-        self.lock_delay_textbox.render(self.surface, True)
+        # self.lock_delay_textbox.render(self.surface)
         pygame.display.flip()
 
     def level_delay(self):
