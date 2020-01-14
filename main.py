@@ -50,15 +50,18 @@ class Menu(object):
         # Initialise pygame renderers
         self.background = pygame.sprite.Group()
         PygamePicture((-50, -50), self.background, "menu_background.png")
-        self.tetris_start_butt = PygamePushButton((250, 300), (200, 70), 70,
+        self.tetris_start_butt = PygamePushButton((250, 300), (200, 70), 50,
                                                   ColorMap.WHITE, ColorMap.WHITE,
                                                   5, None, self.tetris.run, "TETRIS")
-        self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 70,
+        self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 50,
                                                    ColorMap.WHITE, ColorMap.WHITE,
                                                    5, None, self.pentris.run, "PENTIX")
         self.highscores_butt = PygamePushButton((250, 500), (200, 70), 40,
                                                 ColorMap.WHITE, ColorMap.WHITE,
                                                 5, None, self.hs.run, "HIGHSCORES")
+        self.exit_butt = PygamePushButton((250, 600), (200, 70), 50,
+                                          ColorMap.WHITE, ColorMap.WHITE,
+                                          5, None, self.exit, "EXIT")
         self.menu_rect = PygameFillingRect(
             (200, 0), (300, 700), ColorMap.CLEAR, 0)
         self.logo = pygame.sprite.Group()
@@ -68,8 +71,14 @@ class Menu(object):
         # Ininitalize clock
         self.clock = pygame.time.Clock()
 
+    def reset(self):
+        self.exit = False
+
     def key_handler(self, key):
         pass
+
+    def exit(self):
+        self.exit = True
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
@@ -79,11 +88,15 @@ class Menu(object):
         self.tetris_start_butt.render(self.surface)
         self.pentris_start_butt.render(self.surface)
         self.highscores_butt.render(self.surface)
+        self.exit_butt.render(self.surface)
         pygame.display.flip()
 
     def run(self):
+        self.reset()
         while True:
             print("menu")
+            if self.exit:
+                break
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -92,6 +105,7 @@ class Menu(object):
                     self.tetris_start_butt.check_click(event.pos)
                     self.pentris_start_butt.check_click(event.pos)
                     self.highscores_butt.check_click(event.pos)
+                    self.exit_butt.check_click(event.pos)
             self.render()
             self.clock.tick(self.fps)
 
@@ -352,20 +366,23 @@ class Pause(object):
     def __init__(self, surface, game_field):
         self.surface = surface
         self.game_field = game_field
-        self.resume_butt = PygamePushButton((250, 300), (200, 70), 70,
+        self.resume_butt = PygamePushButton((250, 300), (200, 70), 50,
                                             ColorMap.WHITE, ColorMap.WHITE,
                                             5, None, self.resume_game, "Resume")
-        self.exit_butt = PygamePushButton((250, 400), (200, 70), 70,
+        self.exit_butt = PygamePushButton((250, 500), (200, 70), 50,
                                           ColorMap.WHITE, ColorMap.WHITE,
                                           5, None, self.exit_game, "Exit")
-        self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
+        self.restart_butt = PygamePushButton((250, 400), (200, 70), 50,
                                              ColorMap.WHITE, ColorMap.WHITE,
                                              5, None, self.restart_game, "Restart")
+        self.pause_pic = pygame.sprite.Group()
+        PygamePicture((-76, -100), self.pause_pic, "pause.jpg")
         self.fps = 30
         self.clock = pygame.time.Clock()
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
+        self.pause_pic.draw(self.surface)
         self.resume_butt.render(self.surface)
         self.exit_butt.render(self.surface)
         self.restart_butt.render(self.surface)
@@ -413,18 +430,21 @@ class GameOver(object):
     def __init__(self, surface, game_field):
         self.surface = surface
         self.game_field = game_field
-        self.exit_butt = PygamePushButton((250, 400), (200, 70), 70,
+        self.exit_butt = PygamePushButton((250, 500), (200, 70), 50,
                                           ColorMap.WHITE, ColorMap.WHITE,
                                           5, None, self.exit_game, "Exit")
-        self.restart_butt = PygamePushButton((250, 500), (200, 70), 70,
+        self.restart_butt = PygamePushButton((250, 400), (200, 70), 50,
                                              ColorMap.WHITE, ColorMap.WHITE,
                                              5, None, self.restart_game, "Restart")
-        self.score_textbox = PygameTextBox((230, 300), ColorMap.WHITE, 50, "0")
+        self.score_textbox = PygameTextBox((250, 290), ColorMap.WHITE, 50, "0")
+        self.gameover_pic = pygame.sprite.Group()
+        PygamePicture((-76, -100), self.gameover_pic, "gameover.jpg")
         self.fps = 30
         self.clock = pygame.time.Clock()
 
     def render(self):
         self.surface.fill(ColorMap.CLEAR)
+        self.gameover_pic.draw(self.surface)
         self.exit_butt.render(self.surface)
         self.restart_butt.render(self.surface)
         self.score_textbox.render(self.surface)
