@@ -56,7 +56,7 @@ class Menu(object):
         self.pentris_start_butt = PygamePushButton((250, 400), (200, 70), 70,
                                                    ColorMap.WHITE, ColorMap.WHITE,
                                                    5, None, self.pentris.run, "PENTIX")
-        self.highscores_butt = PygamePushButton((250, 500), (200, 70), 70,
+        self.highscores_butt = PygamePushButton((250, 500), (200, 70), 40,
                                                 ColorMap.WHITE, ColorMap.WHITE,
                                                 5, None, self.hs.run, "HIGHSCORES")
         self.menu_rect = PygameFillingRect(
@@ -67,7 +67,6 @@ class Menu(object):
         self.fps = 30
         # Ininitalize clock
         self.clock = pygame.time.Clock()
-
 
     def key_handler(self, key):
         pass
@@ -239,7 +238,7 @@ class Tetris(object):
         pygame.display.flip()
 
     def level_delay(self):
-        return round(1000 / sqrt(self.level))
+        return round(700 / sqrt(self.level))
 
     def choose_piece(self):
         return self.piece_type((0, 0), *next(self.randomizer))
@@ -250,9 +249,11 @@ class Tetris(object):
         while True:
             print("game")
             if self.exit:
+                self.main_theme.stop()
                 self.save_score()
                 break
             elif self.restart:
+                self.main_theme.stop()
                 self.save_score()
                 self.reset()
             elif self.game_over:
@@ -461,7 +462,7 @@ class HighScores(object):
                                           ColorMap.WHITE, ColorMap.WHITE,
                                           5, None, self.window_exit, "Exit")
         # Set fps
-        self.fps = 30
+        self.fps = 15
         # Initialise clock
         self.clock = pygame.time.Clock()
 
@@ -474,6 +475,7 @@ class HighScores(object):
         self.tetris_highlevel_textbox.render(self.surface)
         self.pentix_highscore_textbox.render(self.surface)
         self.pentix_highlevel_textbox.render(self.surface)
+        self.exit_butt.render(self.surface)
         pygame.display.flip()
 
     def reset(self):
@@ -497,8 +499,8 @@ class HighScores(object):
                     exit()
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     self.exit_butt.check_click(event.pos)
-                self.render()
-                self.clock.tick(self.fps)
+            self.render()
+            self.clock.tick(self.fps)
 
 
 def main():
