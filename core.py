@@ -17,6 +17,10 @@ class ColorMap(object):
     WHITE = pygame.Color("white")
     LIGHTGREEN = pygame.Color("lightgreen")
     GHOST = pygame.Color("darkgrey")
+    PINK = pygame.Color("pink")
+    LIGHTCYAN = pygame.Color("lightcyan")
+    PURPLE = pygame.Color("purple")
+    BG = pygame.Color("#25221E")
 
     # CLEAR = "clear"
     # RED = "red"
@@ -155,41 +159,41 @@ class Tetromino(TetrisPiece):
 class Pentomino(TetrisPiece):
     wall_kicks = defaultdict(lambda: ((0, 0),))
     I_SH = (Shape(((0, 2), (1, 2), (2, 2), (3, 2), (4, 2)),
-                  5, wall_kicks), ColorMap.WHITE)
+                  5, wall_kicks), ColorMap.RED)
     L1_SH = (Shape(((0, 1), (0, 2), (1, 2), (2, 2), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.YELLOW)
     L2_SH = (Shape(((0, 2), (1, 2), (2, 2), (3, 1), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.YELLOW)
     P1_SH = (Shape(((0, 2), (1, 1), (1, 2), (2, 1), (2, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.LIGHTGREEN)
     P2_SH = (Shape(((1, 1), (1, 2), (2, 1), (2, 2), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.LIGHTGREEN)
     N1_SH = (Shape(((0, 1), (1, 1), (1, 2), (2, 2), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.GREEN)
     N2_SH = (Shape(((0, 2), (1, 2), (2, 1), (2, 2), (3, 1)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.GREEN)
     Z1_SH = (Shape(((0, 0), (0, 1), (1, 1), (2, 1), (2, 2)),
-                   3, wall_kicks), ColorMap.WHITE)
+                   3, wall_kicks), ColorMap.MAGENTA)
     Z2_SH = (Shape(((0, 1), (0, 2), (1, 1), (2, 0), (2, 1)),
-                   3, wall_kicks), ColorMap.WHITE)
+                   3, wall_kicks), ColorMap.MAGENTA)
     Y1_SH = (Shape(((0, 2), (1, 2), (2, 1), (2, 2), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.PINK)
     Y2_SH = (Shape(((0, 2), (1, 2), (1, 3), (2, 3), (3, 2)),
-                   4, wall_kicks), ColorMap.WHITE)
+                   4, wall_kicks), ColorMap.PINK)
     F1_SH = (Shape(((0, 1), (1, 0), (1, 1), (1, 2), (2, 2)),
-                   3, wall_kicks), ColorMap.WHITE)
+                   3, wall_kicks), ColorMap.ORANGE)
     F2_SH = (Shape(((0, 1), (1, 0), (1, 1), (1, 2), (2, 2)),
-                   3, wall_kicks), ColorMap.WHITE)
+                   3, wall_kicks), ColorMap.ORANGE)
     T_SH = (Shape(((0, 2), (1, 0), (1, 1), (1, 2), (2, 2)),
-                  3, wall_kicks), ColorMap.WHITE)
+                  3, wall_kicks), ColorMap.CYAN)
     U_SH = (Shape(((0, 0), (0, 1), (1, 1), (2, 0), (2, 1)),
-                  3, wall_kicks), ColorMap.WHITE)
+                  3, wall_kicks), ColorMap.LIGHTCYAN)
     V_SH = (Shape(((0, 2), (1, 2), (2, 0), (2, 1), (2, 2)),
-                  3, wall_kicks), ColorMap.WHITE)
+                  3, wall_kicks), ColorMap.BLUE)
     W_SH = (Shape(((0, 2), (1, 1), (1, 2), (2, 0), (2, 1)),
                   3, wall_kicks), ColorMap.WHITE)
     X_SH = (Shape(((0, 1), (1, 0), (1, 1), (1, 2), (2, 1)),
-                  3, wall_kicks), ColorMap.WHITE)
+                  3, wall_kicks), ColorMap.PURPLE)
 
     SHAPES = (I_SH, L1_SH, L2_SH, P1_SH, P2_SH, N1_SH, N2_SH, Z1_SH,
               Z2_SH, Y1_SH, Y2_SH, F1_SH, T_SH, U_SH, V_SH, W_SH, X_SH)
